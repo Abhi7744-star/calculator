@@ -3,69 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculator</title>
+<title>Pro Calculator</title>
 
 <style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; }
 
 body {
-  background: #020617;
-  font-family: Arial;
+  margin: 0;
+  background: radial-gradient(circle, #020617, #000);
+  font-family: 'Segoe UI', sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
 }
 
-/* FULL FIX */
+/* Layout */
 .container {
-  width: 100%;
-  max-width: 360px;
-  padding: 10px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* Calculator */
 .calculator {
   width: 100%;
+  max-width: 320px;
   padding: 15px;
-  border-radius: 20px;
-  background: #0f172a;
+  border-radius: 25px;
+  background: linear-gradient(145deg, #0f172a, #020617);
+  box-shadow: 10px 10px 30px #000, -5px -5px 20px #1e293b;
 }
 
 /* Display */
 .display {
   width: 100%;
   height: 80px;
-  font-size: 26px;
-  text-align: right;
-  padding: 15px;
-  margin-bottom: 15px;
   border-radius: 15px;
   border: none;
-  background: #020617;
+  margin-bottom: 15px;
+  padding: 15px;
+  font-size: 26px;
+  text-align: right;
   color: #00f5ff;
+  background: #020617;
   overflow-x: auto;
+  white-space: nowrap;
 }
 
-/* Grid */
+/* Buttons */
 .buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 
-/* Buttons */
 button {
-  width: 100%;
-  height: 60px;
+  height: 55px;
   border: none;
   border-radius: 15px;
   font-size: 18px;
   color: white;
+  cursor: pointer;
+  background: #1e293b;
+  box-shadow: 5px 5px 10px #000;
+}
+
+button:active {
+  transform: scale(0.95);
 }
 
 /* Colors */
@@ -78,72 +84,136 @@ button {
   color: black;
 }
 
-/* REMOVE SCROLL ISSUE */
-html, body {
-  overflow: hidden;
+/* History */
+.history {
+  width: 100%;
+  max-width: 220px;
+  height: 400px;
+  padding: 10px;
+  border-radius: 15px;
+  background: #020617;
+  color: white;
+  overflow-y: auto;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.history button {
+  height: 25px;
+  font-size: 12px;
+  background: red;
+}
+
+/* Mobile fix */
+@media (max-width: 500px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 </style>
 </head>
 
 <body>
 
+<audio id="clickSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
 <div class="container">
 
+  <!-- Calculator -->
   <div class="calculator">
     <input type="text" id="display" class="display" disabled>
 
     <div class="buttons">
       <button class="red" onclick="clearDisplay()">AC</button>
       <button class="orange" onclick="backspace()">⌫</button>
-      <button class="orange" onclick="append('/')">÷</button>
-      <button class="orange" onclick="append('*')">×</button>
+      <button class="orange" onclick="appendValue('/')">÷</button>
+      <button class="orange" onclick="appendValue('*')">×</button>
 
-      <button onclick="append('7')">7</button>
-      <button onclick="append('8')">8</button>
-      <button onclick="append('9')">9</button>
-      <button class="orange" onclick="append('-')">−</button>
+      <button onclick="appendValue('7')">7</button>
+      <button onclick="appendValue('8')">8</button>
+      <button onclick="appendValue('9')">9</button>
+      <button class="orange" onclick="appendValue('-')">−</button>
 
-      <button onclick="append('4')">4</button>
-      <button onclick="append('5')">5</button>
-      <button onclick="append('6')">6</button>
-      <button class="orange" onclick="append('+')">+</button>
+      <button onclick="appendValue('4')">4</button>
+      <button onclick="appendValue('5')">5</button>
+      <button onclick="appendValue('6')">6</button>
+      <button class="orange" onclick="appendValue('+')">+</button>
 
-      <button onclick="append('1')">1</button>
-      <button onclick="append('2')">2</button>
-      <button onclick="append('3')">3</button>
-      <button class="blue" onclick="append('%')">%</button>
+      <button onclick="appendValue('1')">1</button>
+      <button onclick="appendValue('2')">2</button>
+      <button onclick="appendValue('3')">3</button>
+      <button class="blue" onclick="appendValue('%')">%</button>
 
-      <button onclick="append('0')">0</button>
-      <button onclick="append('.')">.</button>
+      <button onclick="appendValue('0')">0</button>
+      <button onclick="appendValue('.')">.</button>
       <button class="equal" onclick="calculate()">=</button>
     </div>
+  </div>
+
+  <!-- History -->
+  <div class="history">
+    <div class="history-header">
+      <h3>History</h3>
+      <button onclick="clearHistory()">Clear</button>
+    </div>
+    <div id="historyList"></div>
   </div>
 
 </div>
 
 <script>
-function append(val) {
-  let d = document.getElementById("display");
-  d.value += val;
-  d.scrollLeft = d.scrollWidth;
+const display = document.getElementById("display");
+const historyList = document.getElementById("historyList");
+const sound = document.getElementById("clickSound");
+
+/* Enable sound */
+document.body.addEventListener("click", () => {
+  sound.play().catch(()=>{});
+}, { once: true });
+
+function clickSound() {
+  sound.currentTime = 0;
+  sound.play();
+}
+
+function appendValue(val) {
+  clickSound();
+  display.value += val;
+  display.scrollLeft = display.scrollWidth;
 }
 
 function clearDisplay() {
-  document.getElementById("display").value = "";
+  clickSound();
+  display.value = "";
 }
 
 function backspace() {
-  let d = document.getElementById("display");
-  d.value = d.value.slice(0, -1);
+  clickSound();
+  display.value = display.value.slice(0, -1);
 }
 
 function calculate() {
-  let d = document.getElementById("display");
   try {
-    d.value = eval(d.value);
+    clickSound();
+    let exp = display.value;
+    let result = eval(exp);
+    display.value = result;
+
+    let div = document.createElement("div");
+    div.innerText = exp + " = " + result;
+    historyList.appendChild(div);
+
   } catch {
-    alert("Invalid");
+    alert("Invalid Input");
   }
+}
+
+function clearHistory() {
+  historyList.innerHTML = "";
 }
 </script>
 
